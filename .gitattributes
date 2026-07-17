@@ -1,0 +1,15 @@
+# Mirage Mesh is authored on Windows but runs on an Ubuntu 22.04 VM.
+# Normalise every text file to LF in the repository so that shell scripts and
+# Python execute correctly on Linux (CRLF would yield "bad interpreter: ^M").
+* text=auto eol=lf
+
+# Shell scripts MUST be LF — they are the setup entry points on the VM.
+*.sh    text eol=lf
+*.py    text eol=lf
+*.yml   text eol=lf
+*.xml   text eol=lf
+
+# Never touch binary assets.
+*.png   binary
+*.jpg   binary
+*.pdf   binary
