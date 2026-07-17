@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mirage-mesh"
+version = "0.1.0"
+description = "Multi-layer cyber deception PoC for Linux (Mirage Mesh)"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Priyadharshan Vadivel" }]
+dependencies = [
+    "PyYAML>=6.0",
+    "Flask>=3.0",
+]
+
+# `pip install -e .` on the VM exposes the shared library as `mirage_common` so
+# the long-running decoy watchers and the Wazuh handler can import it under
+# systemd/cron without any PYTHONPATH juggling.
+[tool.setuptools]
+package-dir = { "" = "common" }
+
+[tool.setuptools.packages.find]
+where = ["common"]
+
+[tool.pytest.ini_options]
+testpaths = ["common", "orchestration", "decoys"]
+addopts = "-q"
