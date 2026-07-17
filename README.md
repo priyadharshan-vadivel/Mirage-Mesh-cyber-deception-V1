@@ -96,7 +96,22 @@ sudo ./scripts/setup_all.sh
 **Development note:** this repo is authored on Windows and deployed to an Ubuntu
 22.04 VM. The pure-Python parts (schema, emitter, pipeline, per-decoy mappers)
 are unit-tested cross-platform; the decoy *services* (Cowrie, auditd, sshd) only
-run on the Linux VM.
+run on the Linux VM. (On Windows, `pytest` may need `--basetemp=<writable dir>`.)
+
+### Prove it works end to end
+
+```bash
+./scripts/simulate_attack.sh          # fires all four decoys against the VM
+```
+
+Each layer produces one high-confidence event in `/var/log/mirage-mesh/*.jsonl`,
+which Wazuh raises as an alert and the orchestration handler logs + notifies —
+the same pipeline for all four. The test suite includes an **offline** proxy of
+this whole path (`orchestration/tests/test_end_to_end.py`): decoy emit → shared
+schema → Wazuh active-response message → handler → pipeline → notification.
+
+**Test status:** 59 passing (schema/emitter, orchestration pipeline + handler +
+notifier, all four decoy mappers, and two end-to-end integration tests).
 
 ---
 
