@@ -75,6 +75,10 @@ shared event schema in `common/mirage_common/schema.py`.
 
 ## Setup / run / test
 
+> **Full step-by-step guide — prerequisites, the SSH port handoff, dashboard
+> import, troubleshooting, and rollback — is in [docs/SETUP.md](docs/SETUP.md).**
+> The essentials:
+
 Written for a reader with **no prior context**, standing the PoC up on a single
 **Ubuntu 22.04 LTS VM** with `sudo` and ~4 GB RAM / 2 vCPU.
 
