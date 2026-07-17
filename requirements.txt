@@ -1,0 +1,15 @@
+# Mirage Mesh — Python dependencies (PoC)
+# Pinned to conservative, widely-available versions for a reproducible VM setup.
+
+# Config loading (externalised ports/paths/account names)
+PyYAML==6.0.2
+
+# Software-layer decoy: fake admin login page
+Flask==3.0.3
+
+# Testing the shared orchestration pipeline and per-module mappers
+pytest==8.3.3
+
+# NOTE: Cowrie (network decoy) has its OWN virtualenv and requirements and is
+# installed separately on the VM by decoys/network_ssh/setup.sh — it is a
+# third-party service, not a Python dependency of this repo.

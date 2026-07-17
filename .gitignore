@@ -1,0 +1,40 @@
+# ── Python ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# ── Virtual environments ────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Runtime / generated ─────────────────────────────────────────────────
+# Local event logs and orchestration output must never be committed.
+*.log
+*.jsonl
+/var/
+logs/
+
+# ── SECURITY: honeytokens & secrets ─────────────────────────────────────
+# The *rendered* bait file may look like a real credential. Never commit it.
+# Only the *.template files (obviously-fake placeholders) are tracked.
+decoys/data_honeytoken/bait/rendered/
+**/*.secret
+*.pem
+*.key
+!*.template
+
+# ── Cowrie (third-party, installed on the VM, never vendored here) ───────
+decoys/network_ssh/cowrie/
+
+# ── OS / editor cruft ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

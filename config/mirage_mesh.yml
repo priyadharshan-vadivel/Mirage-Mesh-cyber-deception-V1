@@ -1,0 +1,60 @@
+# ════════════════════════════════════════════════════════════════════════
+#  Mirage Mesh — central configuration
+# ════════════════════════════════════════════════════════════════════════
+#  Everything environment-specific lives here, NOT in code. This is the file
+#  the future Adaptability layer (Phase 3) will rewrite on a schedule to
+#  rotate decoys (ports, account names, bait paths) WITHOUT touching any
+#  module logic. Treat every value below as "safe to change here alone".
+#
+#  Loaded by common/mirage_common/config.py. Override the path with the
+#  MIRAGE_MESH_CONFIG environment variable.
+# ────────────────────────────────────────────────────────────────────────
+
+# Shared event bus: every decoy appends one JSON line per event into a file
+# under this directory. The Wazuh agent tails "<log_dir>/*.jsonl".
+# This is the single interface boundary between decoys and visibility.
+log_dir: /var/log/mirage-mesh
+
+# ── Orchestration (decoy-agnostic response pipeline) ────────────────────
+orchestration:
+  # Where the pipeline writes its own audit trail of handled alerts.
+  handled_log: /var/log/mirage-mesh/orchestration.log
+  # Notifier backend for the PoC: "console" (stdout) or "file".
+  # Phase 2 adds "slack" / "email" / "webhook" as pure additions.
+  notifier: file
+  # File notifier target (one JSON line per notification).
+  notification_file: /var/log/mirage-mesh/notifications.jsonl
+
+# ── Network layer: fake SSH (Cowrie) ────────────────────────────────────
+network_ssh:
+  decoy_id: network-ssh-cowrie-01
+  # Cowrie's native JSON log that the adapter tails.
+  cowrie_json_log: /opt/mirage-mesh/cowrie/var/log/cowrie/cowrie.json
+  # Port Cowrie presents SSH on. For realism this should be 22 — see the
+  # module README for the (mandatory) "move real sshd first" procedure.
+  listen_port: 22
+
+# ── System layer: decoy Linux account ("honey permissions") ─────────────
+system_account:
+  decoy_id: system-account-01
+  # The tempting account no legitimate process should EVER touch.
+  account_name: backup-admin
+  # Auth log the watcher tails for references to the decoy account.
+  auth_log: /var/log/auth.log
+
+# ── Software layer: fake admin login (Flask) ────────────────────────────
+software_login:
+  decoy_id: software-login-01
+  bind_host: 0.0.0.0
+  bind_port: 8080
+  # Path that presents the fake admin panel.
+  admin_path: /admin
+
+# ── Data layer: honeytoken bait file ────────────────────────────────────
+data_honeytoken:
+  decoy_id: data-honeytoken-01
+  # Where the enticing fake-credentials file is planted. Chosen to sit where
+  # an attacker would grep for secrets. NEVER point this at a real secret.
+  bait_path: /opt/backup/.aws/credentials
+  # auditd key used to tag read-access events on the bait file.
+  audit_key: mirage_honeytoken
