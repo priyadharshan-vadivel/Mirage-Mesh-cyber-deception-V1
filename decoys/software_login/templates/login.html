@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!--
+  Mirage Mesh software-layer decoy. A deliberately generic internal admin login.
+  It impersonates no real product or organisation and has no backend — every
+  submission is recorded and rejected.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IT Operations Console — Sign in</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: #1f2933; color: #e4e7eb; margin: 0;
+      display: flex; min-height: 100vh; align-items: center; justify-content: center;
+    }
+    .card {
+      background: #323f4b; padding: 2.25rem 2rem; border-radius: 8px;
+      width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,.4);
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 .25rem; }
+    p.sub { margin: 0 0 1.5rem; font-size: .82rem; color: #9aa5b1; }
+    label { display: block; font-size: .78rem; margin: .9rem 0 .3rem; color: #cbd2d9; }
+    input {
+      width: 100%; padding: .6rem .7rem; border: 1px solid #52606d;
+      border-radius: 5px; background: #1f2933; color: #f5f7fa; font-size: .9rem;
+    }
+    button {
+      margin-top: 1.4rem; width: 100%; padding: .65rem; border: 0; border-radius: 5px;
+      background: #2bb0ed; color: #06263a; font-weight: 600; font-size: .92rem; cursor: pointer;
+    }
+    .err { background: #611a15; color: #fcd7d4; padding: .55rem .7rem;
+           border-radius: 5px; font-size: .8rem; margin-bottom: 1rem; }
+    .foot { margin-top: 1.3rem; font-size: .68rem; color: #7b8794; text-align: center; }
+  </style>
+</head>
+<body>
+  <form class="card" method="post" action="{{ admin_path }}">
+    <h1>IT Operations Console</h1>
+    <p class="sub">Authorized personnel only. All activity is monitored.</p>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <label for="username">Username</label>
+    <input id="username" name="username" autocomplete="off" autofocus>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="off">
+    <button type="submit">Sign in</button>
+    <div class="foot">Internal Systems • v3.4.1</div>
+  </form>
+</body>
+</html>
