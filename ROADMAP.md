@@ -16,16 +16,21 @@ belongs to. Scope is not expanded silently.
 - **Shared event schema** (`DecoyAlertEvent`) with MITRE ATT&CK + kill-chain
   fields — the single interface every decoy emits.
 - **Visibility** — all four decoys' alerts normalised into Wazuh (rules +
-  per-layer MITRE tags; the JSON is auto-decoded, so no custom decoder), visible
-  on one dashboard.
+  per-layer MITRE tags; the JSON is auto-decoded, so no custom decoder). Plus an
+  importable **"Mirage Mesh Overview"** dashboard (saved-objects NDJSON): total
+  hits, hits-by-layer (colour-coded), timeline, kill-chain coverage, and a recent
+  events table — additive, no new service.
 - **Orchestration** — one decoy-agnostic Python pipeline invoked by Wazuh
   active response; logs every alert with timestamp + source IP and notifies.
-- **Single-VM setup** — `setup_all.sh` to stand it all up, `simulate_attack.sh`
-  to fire the decoys, and `verify_live.sh` to walk the full chain per layer.
-- **Tests (83)** on schema/emitter/config, the shared pipeline + handler +
+- **Single-VM setup** — `setup_all.sh` (pre-flight checks, `--dry-run`, stage
+  headers, idempotent, prints the next manual step) to stand it all up,
+  `simulate_attack.sh` to fire the decoys, and `verify_live.sh` to walk the full
+  chain per layer.
+- **Tests (96)** on schema/emitter/config, the shared pipeline + handler +
   notifier, all four decoy mappers (with realistic log samples), two end-to-end
-  integration tests, and Wazuh-config consistency (regression tests for both
-  review-caught bugs).
+  integration tests, Wazuh-config consistency (regression tests for both
+  review-caught bugs), the `setup_all.sh` contract, and the dashboard NDJSON
+  structure.
 
 ---
 
