@@ -29,7 +29,11 @@ except ModuleNotFoundError:  # allow running from a fresh checkout without insta
 DECOY_LAYER = "system"
 DECOY_TYPE = "decoy_account"
 
+# Prefer the IP after "from " (the canonical sshd source), but fall back to the
+# first IPv4 anywhere on the line — some sshd/PAM formats (e.g. "Disconnected
+# from authenticating user <acct> <ip>") don't put the IP right after "from ".
 _IP_RE = re.compile(r"from (\d{1,3}(?:\.\d{1,3}){3})")
+_ANY_IP_RE = re.compile(r"\b(\d{1,3}(?:\.\d{1,3}){3})\b")
 _PORT_RE = re.compile(r"port (\d{1,5})\b")
 
 
@@ -61,7 +65,7 @@ def parse_auth_line(line: str, account: str):
     if not re.search(r"\b" + re.escape(account) + r"\b", line):
         return None
     action, stage, mitre, severity = _classify(line)
-    ip_match = _IP_RE.search(line)
+    ip_match = _IP_RE.search(line) or _ANY_IP_RE.search(line)
     port_match = _PORT_RE.search(line)
     return dict(
         event_action=action,

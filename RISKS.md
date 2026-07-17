@@ -46,3 +46,24 @@ If any of these is false, setup steps change; flag it before running the scripts
 - **No resilience if Wazuh itself fails** (see R6).
 - **Cowrie / auditd realism** is bounded by the open-source tools; a determined
   adversary with deep knowledge of these tools may fingerprint them.
+
+---
+
+## Open verification items
+
+| # | Item | Status |
+|---|---|---|
+| V1 | **Live on-VM end-to-end run.** Everything offline-testable passes (83 tests), but the live chain — Cowrie/auditd/sshd producing real events → Wazuh JSON-decoding the dotted `mirage_mesh.*` fields → the correct child rule (100201–100204) firing → active response invoking the handler → `orchestration.log` — has **not** been exercised on a real Wazuh install. Highest-uncertainty assumption: the Wazuh `<field name="mirage_mesh.decoy_layer">` selectors resolve as expected against the live JSON decoder. | **OPEN** — run `scripts/verify_live.sh` on the VM to close. |
+
+## Review findings (resolved)
+
+An adversarial review of the integration seams (which cannot be exercised
+offline) found and **fixed** two real defects before any live run:
+
+- **HIGH** — active response keyed on a rule group carried only by the base rule,
+  so it would never have fired. Now keyed on the shared `mirage_mesh` group.
+- **MEDIUM** — the active-response wrapper didn't set `MIRAGE_MESH_CONFIG`, risking
+  silent degradation to a console notifier. Now exported in the wrapper.
+
+Both are guarded by regression tests in `tests/test_wazuh_config_consistency.py`
+so they cannot silently reappear.

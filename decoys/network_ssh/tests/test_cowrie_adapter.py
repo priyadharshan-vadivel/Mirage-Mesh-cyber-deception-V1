@@ -84,3 +84,69 @@ def test_process_line_ignores_partial_json_line():
 
     # A partial line written during rotation must not raise or emit.
     _process_line('{"eventid":"cowrie.login', ExplodingEmitter())
+
+
+# ── Realistic full Cowrie JSON event samples (shapes Cowrie actually emits) ──
+REAL_CONNECT = {
+    "eventid": "cowrie.session.connect", "src_ip": "185.220.101.34", "src_port": 44352,
+    "dst_ip": "10.0.0.5", "dst_port": 22, "session": "b9f1c2", "protocol": "ssh",
+    "message": "New connection: 185.220.101.34:44352 (10.0.0.5:22) [session: b9f1c2]",
+    "sensor": "prod-db-01", "timestamp": "2026-07-17T09:15:22.104931Z",
+}
+REAL_LOGIN_FAILED = {
+    "eventid": "cowrie.login.failed", "username": "root", "password": "P@ssw0rd123",
+    "src_ip": "185.220.101.34", "session": "b9f1c2", "protocol": "ssh",
+    "message": "login attempt [root/P@ssw0rd123] failed",
+    "timestamp": "2026-07-17T09:15:23.551201Z",
+}
+REAL_COMMAND = {
+    "eventid": "cowrie.command.input", "input": "uname -a && cat /etc/passwd",
+    "src_ip": "185.220.101.34", "session": "b9f1c2",
+    "message": "CMD: uname -a && cat /etc/passwd", "timestamp": "2026-07-17T09:16:02.900000Z",
+}
+REAL_DOWNLOAD = {
+    "eventid": "cowrie.session.file_download", "src_ip": "185.220.101.34",
+    "url": "http://185.220.101.34/x.sh", "outfile": "var/lib/cowrie/downloads/abcd",
+    "shasum": "deadbeef", "session": "b9f1c2", "timestamp": "2026-07-17T09:16:30Z",
+}
+
+
+def test_realistic_connect_event():
+    kwargs = map_cowrie_event(REAL_CONNECT)
+    assert kwargs["event_action"] == "ssh_connect"
+    assert kwargs["source_ip"] == "185.220.101.34"
+    assert kwargs["source_port"] == 44352
+    assert kwargs["severity"] == "medium"
+    assert "message" in kwargs["details"]
+
+
+def test_realistic_login_failed_without_src_port():
+    kwargs = map_cowrie_event(REAL_LOGIN_FAILED)
+    assert kwargs["event_action"] == "ssh_login_failed"
+    assert kwargs["source_port"] is None       # this event carries no src_port
+    assert kwargs["details"]["password"] == "P@ssw0rd123"
+    assert kwargs["timestamp"] == "2026-07-17T09:15:23.551201Z"
+
+
+def test_realistic_command_input_is_discovery():
+    kwargs = map_cowrie_event(REAL_COMMAND)
+    assert kwargs["details"]["input"] == "uname -a && cat /etc/passwd"
+    assert kwargs["kill_chain_stage"] == "discovery"
+
+
+def test_realistic_file_download_is_delivery():
+    kwargs = map_cowrie_event(REAL_DOWNLOAD)
+    assert kwargs["event_action"] == "ssh_file_download"
+    assert kwargs["kill_chain_stage"] == "delivery"
+    assert kwargs["details"]["url"].endswith("x.sh")
+
+
+def test_every_mapped_event_passes_schema_validation(tmp_path):
+    # Feed each mapped event through the REAL emitter/schema: emit() validates,
+    # so this proves the translated kwargs actually satisfy DecoyAlertEvent.
+    from mirage_common.emitter import EventEmitter
+
+    emitter = EventEmitter("net", "network", "fake_ssh", log_dir=tmp_path)
+    for raw in (REAL_CONNECT, REAL_LOGIN_FAILED, REAL_COMMAND, REAL_DOWNLOAD):
+        emitter.emit(**map_cowrie_event(raw))
+    assert len((tmp_path / "fake_ssh.jsonl").read_text().splitlines()) == 4
