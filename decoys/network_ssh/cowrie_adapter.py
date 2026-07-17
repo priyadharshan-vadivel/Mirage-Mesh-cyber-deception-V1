@@ -13,18 +13,18 @@ thin I/O wrapper around it.
 from __future__ import annotations
 
 import json
-import os
 import pathlib
 import sys
-import time
 
 try:
     from mirage_common.config import load_config, section
     from mirage_common.emitter import EventEmitter
+    from mirage_common.tail import follow
 except ModuleNotFoundError:  # allow running from a fresh checkout without install
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "common"))
     from mirage_common.config import load_config, section
     from mirage_common.emitter import EventEmitter
+    from mirage_common.tail import follow
 
 DECOY_LAYER = "network"
 DECOY_TYPE = "fake_ssh"
@@ -84,36 +84,6 @@ def map_cowrie_event(raw: dict):
         # Pass Cowrie's own timestamp through; the schema stores it verbatim.
         timestamp=raw.get("timestamp"),
     )
-
-
-def follow(path, poll_interval=0.5, from_start=False):
-    """Yield lines appended to ``path``, tolerant of the file not yet existing
-    and of log rotation / truncation (Cowrie rotates ``cowrie.json`` daily)."""
-    path = pathlib.Path(path)
-    while not path.exists():
-        time.sleep(poll_interval)
-    handle = open(path, "r", encoding="utf-8", errors="replace")
-    if not from_start:
-        handle.seek(0, os.SEEK_END)
-    inode = os.fstat(handle.fileno()).st_ino
-    try:
-        while True:
-            line = handle.readline()
-            if line:
-                yield line
-                continue
-            time.sleep(poll_interval)
-            # Reopen on rotation (inode changed) or truncation (size < position).
-            try:
-                stat = os.stat(path)
-            except FileNotFoundError:
-                continue
-            if stat.st_ino != inode or stat.st_size < handle.tell():
-                handle.close()
-                handle = open(path, "r", encoding="utf-8", errors="replace")
-                inode = os.fstat(handle.fileno()).st_ino
-    finally:
-        handle.close()
 
 
 def run(from_start=False, once=False):
