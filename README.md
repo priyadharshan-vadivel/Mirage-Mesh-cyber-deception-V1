@@ -75,22 +75,39 @@ shared event schema in `common/mirage_common/schema.py`.
 
 ## Setup / run / test
 
-> Full VM setup lives in [docs/architecture.md](docs/architecture.md) and each
-> module's README. Quick reference:
+Written for a reader with **no prior context**, standing the PoC up on a single
+**Ubuntu 22.04 LTS VM** with `sudo` and ~4 GB RAM / 2 vCPU.
+
+**1 — Prerequisite: Wazuh.** `setup_all.sh` assumes Wazuh 4.x is already
+installed all-in-one. If it isn't:
 
 ```bash
-# On the Ubuntu 22.04 VM, from the repo root:
+curl -sO https://packages.wazuh.com/4.9/wazuh-install.sh
+sudo bash wazuh-install.sh -a          # note the admin password it prints
+```
+
+**2 — Repo, virtualenv, tests.**
+
+```bash
+git clone <your-remote> mirage-mesh && cd mirage-mesh   # or copy the folder over
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e . -r requirements.txt   # editable install exposes mirage_common
+pytest -q                              # expect: 83 passed
+```
 
-# Run the automated tests (schema + emitter + orchestration pipeline)
-pytest -q
+**3 — Stand up all four decoys + watchers + Wazuh wiring.**
 
-# Bring the whole PoC up on one VM (installs decoys, wires Wazuh)
+```bash
 sudo ./scripts/setup_all.sh
+```
 
-# Fire every decoy to prove alerts flow end to end
-./scripts/simulate_attack.sh
+**4 — Hand `:22` to the fake SSH (MANUAL, two steps, verify between them).**
+Deliberately not automated — doing it wrong locks you out (RISKS R1):
+
+```bash
+sudo decoys/network_ssh/setup.sh ports-prepare     # adds admin SSH on :2200
+#   -> open a NEW terminal and confirm:  ssh -p 2200 <you>@<vm>
+sudo decoys/network_ssh/setup.sh ports-finalize    # only then: frees :22 for Cowrie
 ```
 
 **Development note:** this repo is authored on Windows and deployed to an Ubuntu
@@ -98,20 +115,26 @@ sudo ./scripts/setup_all.sh
 are unit-tested cross-platform; the decoy *services* (Cowrie, auditd, sshd) only
 run on the Linux VM. (On Windows, `pytest` may need `--basetemp=<writable dir>`.)
 
-### Prove it works end to end
+**5 — Prove it works end to end.**
 
 ```bash
-./scripts/simulate_attack.sh          # fires all four decoys against the VM
+sudo ./scripts/verify_live.sh 2>&1 | tee /tmp/mirage-verify.log
 ```
 
-Each layer produces one high-confidence event in `/var/log/mirage-mesh/*.jsonl`,
-which Wazuh raises as an alert and the orchestration handler logs + notifies —
-the same pipeline for all four. The test suite includes an **offline** proxy of
-this whole path (`orchestration/tests/test_end_to_end.py`): decoy emit → shared
-schema → Wazuh active-response message → handler → pipeline → notification.
+`verify_live.sh` fires all four decoys and walks the full chain per layer — raw
+source log → shared JSONL event → Wazuh rule (100201–100204) → active-response
+invocation → `orchestration.log` → notification — printing `*** MISSING ***` at
+any broken hop, so nothing is taken on trust. (`simulate_attack.sh` just fires
+the decoys without the evidence walk.) The suite also ships an **offline** proxy
+of this path (`orchestration/tests/test_end_to_end.py`): decoy emit → schema →
+Wazuh AR message → handler → pipeline → notification.
 
-**Test status:** 59 passing (schema/emitter, orchestration pipeline + handler +
-notifier, all four decoy mappers, and two end-to-end integration tests).
+**Test status: 83 passing** — schema/emitter/config, orchestration pipeline +
+handler + notifier, all four decoy mappers (with realistic log samples), two
+end-to-end integration tests, and Wazuh-config consistency (including regression
+tests for both bugs the review caught). The one thing tests cannot cover — the
+live Cowrie/auditd/Wazuh run on the VM — is the open verification item in
+[RISKS.md](RISKS.md).
 
 ---
 

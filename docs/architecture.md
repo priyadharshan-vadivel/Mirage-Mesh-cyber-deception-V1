@@ -51,11 +51,15 @@ Everything above it is decoy-specific; everything below it is decoy-agnostic.
 2. **Emit** — the decoy (or its adapter) calls `emit_event()` from
    `mirage_common`, which validates the fields and appends **one JSON line** in
    the shared schema to `/var/log/mirage-mesh/<decoy>.jsonl`.
-3. **Normalize / centralize** — the Wazuh agent tails that log; the `mirage_mesh`
-   rules raise one high-severity alert (tagged by layer + kill-chain stage),
-   visible on the dashboard.
-4. **Orchestrate** — the matching rule triggers Wazuh **active response**, which
-   runs `handler.py` with the alert JSON on stdin. `handler.py` extracts the
+3. **Normalize / centralize** — the Wazuh agent tails that log (`log_format=json`,
+   so fields decode to `mirage_mesh.*`); the rules raise one high-severity alert.
+   A per-layer child rule (`100201`–`100204`) fires with MITRE tags; every rule
+   carries the shared `mirage_mesh` group.
+4. **Orchestrate** — active response is keyed on that shared `mirage_mesh` group
+   (**not** the base rule's own group — a child rule is what actually triggers and
+   does not inherit the base group), so it fires for every layer. It runs the
+   `mirage-orchestrate.sh` wrapper (which exports `MIRAGE_MESH_CONFIG` and) exec's
+   `handler.py` with the alert JSON on stdin; `handler.py` extracts the
    `mirage_mesh` block and calls `pipeline.handle_event()`.
 5. **Act (PoC)** — the pipeline logs with timestamp + source IP and fires the
    notifier. No blocking — detection / notification only.

@@ -66,3 +66,40 @@ def test_lookalike_account_not_matched():
     line = ("Jul 17 12:00:07 host sshd[9]: Failed password for backup-admin2 "
             "from 1.2.3.4 port 1 ssh2")
     assert parse_auth_line(line, ACCOUNT) is None
+
+
+# ── Realistic sshd / PAM auth.log line formats ──────────────────────────────
+def test_pam_authentication_failure_line():
+    line = ("Jul 17 09:15:23 prod-db-01 sshd[2211]: pam_unix(sshd:auth): authentication "
+            "failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=185.220.101.34 user=backup-admin")
+    kwargs = parse_auth_line(line, ACCOUNT)
+    assert kwargs["event_action"] == "login_failed"
+    assert kwargs["source_ip"] == "185.220.101.34"   # via the any-IPv4 fallback
+
+
+def test_accepted_publickey_line():
+    line = ("Jul 17 09:20:01 prod-db-01 sshd[2299]: Accepted publickey for backup-admin "
+            "from 203.0.113.7 port 51234 ssh2: RSA SHA256:abcdef")
+    kwargs = parse_auth_line(line, ACCOUNT)
+    assert kwargs["event_action"] == "login_success"
+    assert kwargs["severity"] == "critical"
+    assert kwargs["source_ip"] == "203.0.113.7"
+    assert kwargs["source_port"] == 51234
+
+
+def test_disconnected_authenticating_user_line_still_captures_ip():
+    # The IP here is NOT after "from " — exercises the fallback matcher.
+    line = ("Jul 17 09:15:40 prod-db-01 sshd[2211]: Disconnected from authenticating user "
+            "backup-admin 185.220.101.34 port 44352 [preauth]")
+    kwargs = parse_auth_line(line, ACCOUNT)
+    assert kwargs is not None
+    assert kwargs["source_ip"] == "185.220.101.34"
+
+
+def test_systemd_logind_new_session_falls_back_to_reference():
+    # "New session N of user X" is not one of the specific patterns, but any
+    # reference to the decoy account is still flagged.
+    line = "Jul 17 09:21:00 prod-db-01 systemd-logind[900]: New session 42 of user backup-admin."
+    kwargs = parse_auth_line(line, ACCOUNT)
+    assert kwargs["event_action"] == "account_reference"
+    assert kwargs["severity"] == "high"

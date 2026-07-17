@@ -15,12 +15,17 @@ belongs to. Scope is not expanded silently.
   - Data — honeytoken bait credentials file + auditd read-access watcher
 - **Shared event schema** (`DecoyAlertEvent`) with MITRE ATT&CK + kill-chain
   fields — the single interface every decoy emits.
-- **Visibility** — all four decoys' alerts normalised into Wazuh (decoders +
-  rules), visible on one dashboard.
+- **Visibility** — all four decoys' alerts normalised into Wazuh (rules +
+  per-layer MITRE tags; the JSON is auto-decoded, so no custom decoder), visible
+  on one dashboard.
 - **Orchestration** — one decoy-agnostic Python pipeline invoked by Wazuh
   active response; logs every alert with timestamp + source IP and notifies.
-- **Single-VM setup** — scripts + per-module instructions to stand it all up.
-- **Tests** on the shared pipeline, schema, emitter, and per-decoy mappers.
+- **Single-VM setup** — `setup_all.sh` to stand it all up, `simulate_attack.sh`
+  to fire the decoys, and `verify_live.sh` to walk the full chain per layer.
+- **Tests (83)** on schema/emitter/config, the shared pipeline + handler +
+  notifier, all four decoy mappers (with realistic log samples), two end-to-end
+  integration tests, and Wazuh-config consistency (regression tests for both
+  review-caught bugs).
 
 ---
 
