@@ -58,3 +58,5 @@ data_honeytoken:
   bait_path: /opt/backup/.aws/credentials
   # auditd key used to tag read-access events on the bait file.
   audit_key: mirage_honeytoken
+  # The auditd log the watcher tails for records carrying the audit_key.
+  audit_log: /var/log/audit/audit.log
