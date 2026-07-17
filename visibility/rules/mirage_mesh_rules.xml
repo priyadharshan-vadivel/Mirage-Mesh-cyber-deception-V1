@@ -11,7 +11,11 @@
    in dot notation: mirage_mesh.decoy_layer, mirage_mesh.source_ip, etc.
 
    Rule IDs use the 100200 block (>=100000 is the user-custom range).
-   Base rule 100200 is what active response keys on (group mirage_mesh_decoy).
+   Active response keys on the shared "mirage_mesh" group (the enclosing
+   <group name="mirage_mesh,...">, carried by EVERY rule below), so it fires for
+   whichever specific rule triggers. It must NOT key on the base rule's own
+   mirage_mesh_decoy group: a per-layer child rule (100201-100204) is the rule
+   that actually triggers and does not inherit the base rule's group.
   ════════════════════════════════════════════════════════════════════════
 -->
 <group name="mirage_mesh,deception,">

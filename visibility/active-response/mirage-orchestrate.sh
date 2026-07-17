@@ -15,4 +15,9 @@
 # ────────────────────────────────────────────────────────────────────────
 REPO_DIR="/opt/mirage-mesh/repo"
 
+# Point the handler at the externalised config explicitly (Wazuh runs this with a
+# minimal environment; without this the handler would fall back to a default path
+# and could silently degrade to a console notifier with no orchestration.log).
+export MIRAGE_MESH_CONFIG="${REPO_DIR}/config/mirage_mesh.yml"
+
 exec "${REPO_DIR}/.venv/bin/python" "${REPO_DIR}/orchestration/handler.py"

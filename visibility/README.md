@@ -18,7 +18,7 @@ runs lives in `../orchestration`.
 |---|---|---|
 | `rules/mirage_mesh_rules.xml` | `/var/ossec/etc/rules/` | Raise a high-level alert for any decoy event; per-layer child rules + MITRE tags; critical→level 14. |
 | `agent/ossec-localfile.conf` | agent `ossec.conf` | Tail the four decoy JSONL files as `log_format=json`. |
-| `active-response/ossec-active-response.conf` | manager `ossec.conf` | Register the `mirage-orchestrate` command + fire it on group `mirage_mesh_decoy`. |
+| `active-response/ossec-active-response.conf` | manager `ossec.conf` | Register the `mirage-orchestrate` command + fire it on the shared `mirage_mesh` group (carried by every rule, so any layer triggers it). |
 | `active-response/mirage-orchestrate.sh` | `/var/ossec/active-response/bin/` | Wrapper that pipes the alert into `orchestration/handler.py` via the repo venv. |
 | `decoders/README.md` | — | Why no custom decoder is needed (JSON auto-decode). |
 
