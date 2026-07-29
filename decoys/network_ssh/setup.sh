@@ -41,12 +41,20 @@ install_cowrie() {
         log "Creating unprivileged '$COWRIE_USER' service account..."
         useradd -r -m -d "$COWRIE_HOME" -s /usr/sbin/nologin "$COWRIE_USER"
     fi
+    # mkdir runs as root regardless of whether useradd -m just created the home
+    # dir (fresh install) or the account already existed (re-run) — in the
+    # re-run case this directory would otherwise stay root-owned, and the
+    # unprivileged clone below would fail with "Permission denied".
     mkdir -p "$(dirname "$COWRIE_HOME")"
+    chown "$COWRIE_USER":"$COWRIE_USER" "$(dirname "$COWRIE_HOME")"
 
     if [ ! -d "$COWRIE_HOME/.git" ]; then
         log "Cloning Cowrie into $COWRIE_HOME..."
         sudo -u "$COWRIE_USER" git clone --depth 1 \
             https://github.com/cowrie/cowrie "$COWRIE_HOME"
+        # Defensive: guarantee the whole tree is cowrie-owned even if some
+        # earlier partial/failed attempt left root-owned files behind.
+        chown -R "$COWRIE_USER":"$COWRIE_USER" "$COWRIE_HOME"
     fi
 
     log "Creating Cowrie virtualenv and installing requirements..."
