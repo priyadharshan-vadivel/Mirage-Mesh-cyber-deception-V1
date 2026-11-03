@@ -35,7 +35,7 @@
     <if_sid>100200</if_sid>
     <field name="mirage_mesh.decoy_layer">^network$</field>
     <description>Mirage Mesh [NETWORK/fake SSH]: $(mirage_mesh.event_action) from $(mirage_mesh.source_ip)</description>
-    <mitre><id>T1046</id><id>T1040</id></mitre>
+    <mitre><id>T1046</id><id>T1059</id><id>T1078</id><id>T1105</id><id>T1110</id></mitre>
     <group>mirage_mesh_network,</group>
   </rule>
 
@@ -43,7 +43,7 @@
     <if_sid>100200</if_sid>
     <field name="mirage_mesh.decoy_layer">^system$</field>
     <description>Mirage Mesh [SYSTEM/decoy account]: $(mirage_mesh.event_action) user $(mirage_mesh.username) from $(mirage_mesh.source_ip)</description>
-    <mitre><id>T1078</id><id>T1069</id></mitre>
+    <mitre><id>T1078</id><id>T1110</id><id>T1548</id></mitre>
     <group>mirage_mesh_system,</group>
   </rule>
 
@@ -51,7 +51,7 @@
     <if_sid>100200</if_sid>
     <field name="mirage_mesh.decoy_layer">^software$</field>
     <description>Mirage Mesh [SOFTWARE/fake login]: $(mirage_mesh.event_action) from $(mirage_mesh.source_ip)</description>
-    <mitre><id>T1110</id></mitre>
+    <mitre><id>T1110</id><id>T1595</id></mitre>
     <group>mirage_mesh_software,</group>
   </rule>
 
@@ -59,7 +59,7 @@
     <if_sid>100200</if_sid>
     <field name="mirage_mesh.decoy_layer">^data$</field>
     <description>Mirage Mesh [DATA/honeytoken]: $(mirage_mesh.event_action) (severity $(mirage_mesh.severity))</description>
-    <mitre><id>T1552</id><id>T1213</id></mitre>
+    <mitre><id>T1552</id></mitre>
     <group>mirage_mesh_data,</group>
   </rule>
 
